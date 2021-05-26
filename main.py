@@ -1,0 +1,4 @@
+import com.markov
+
+if __name__ == '__main__':
+    print('something')
