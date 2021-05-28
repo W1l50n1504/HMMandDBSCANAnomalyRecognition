@@ -1,68 +1,86 @@
 """
 File contenente tutte le funzioni di utility, come lettura dei dataset, creazione di file e tutto il resto
+spiegazione nomenclatura cartelle database:
+
+    dws: walking downstairs
+    ups: walking upstairs
+    sit: sitting
+    std: s  tanding
+    wlk: walking
+    jog: jogging
+
 """
+import os
+import numpy as np
 import pandas as pd
 
-# directory contenente i dataset da utilizzare per l'addestramento degli agenti
-dataset = '/home/w1l50n/PycharmProjects/HMMandDBSCANAnomalyRecognition/com/dataset/'
+import matplotlib.pyplot as plt
+
+# rendi questa variabile globale
+filename_ = 'dws_1/sub_1.csv'
 
 
-# funzione che apre i dataset e restituisce i riferimenti
-def openDataset(file):
-    directory = dataset + file
-    df = pd.read_csv(directory, sep=',', header=None)
-    df.columns = ["Date", "ACTION", "c", "etc."]
-    print(df)
+class Dataset:
 
+    def __init__(self):
+        # serve a conoscere l'absolute path della cartella in cui si trova il file utility
+        self.abs_path = os.getcwd()
 
-def convertNameFile(file):
-    """
-    cambia il nome del file da .txt a .csv
-    :param file: string nome del file da cambiare
-    :return:
-    """
+        # posizione delle cartelle dei vari dataset
 
-    print('inizio conversione nome file')
-    file1 = file.split('.')
-    csvFile = file1[0]
-    csvFile = csvFile + '.csv'
-    print('fine conversione file')
-    return csvFile
+        self.combined_dataset = self.abs_path + '/train_dataset/A_DeviceMotion_data/'
+        self.accelerometer_dataset = self.abs_path + '/train_dataset/B_Accelerometer_data/'
+        self.gyscope_dataset = self.abs_path + '/train_dataset/C_Gyroscope_data/'
 
+        self.df = 0
 
-def convertDataset(file):
-    """
-    Questa funzione serve a convertire i file .txt generati dal SDBSCAN in file .csv da pandas convertendoli nel formato corretto
-    :param file: string, contiene il nome del file da convertire
-    :return:
-    """
-    print('inizio conversione dataset')
-    directory = dataset + file
+    def apriDataset(self, filename, dataset):
+        # attraverso il numero passatogli  sceglie il dataset da caricare,
+        # 0 quello contenente la combinazione dei dati sul giroscopio e l'accelerometro
+        # 1 quello contenente i dati sull'accelerometro
+        # 2 quello contenente i dati sul giroscopio
+        if dataset == 0:
+            self.df = pd.read_csv(os.path.join(self.combined_dataset, filename), index_col=0)
 
-    # apro il file .txt e leggo tutte le righe
-    with open(directory, 'r') as dat:
-        lines = dat.readlines()
-        for i in range(0, len(lines)):
-            print(lines)
+        elif dataset == 1:
+            self.df = pd.read_csv(os.path.join(self.accelerometer_dataset, filename), index_col=0)
 
-    # inizio conversione del nome del file e creazione del nuovo file csv
-    csvFile = convertNameFile(file)
-    newDirectory = dataset + csvFile
-    # fine conversione del nome del file e creazione del nuovo file csv
+        elif dataset == 2:
+            self.df = pd.read_csv(os.path.join(self.gyscope_dataset, filename), index_col=0)
 
+        else:
+            print("Non è stata inserita un'opzione valida")
 
-"""
-    # inizio lettura del file .csv
-    read_file = pd.read_csv(newDirectory)
-    read_file.to_csv(newDirectory, index=None)
-    print(read_file)
-    print('conversione dataset effettuata con successo')
-"""
+    def stampaDataset(self):
+        # viene effettuata la stampa del dataset caricato
+        print(self.df.head())
+
+    def produce_magnitude(self, column):
+        # crea la nuova colonna contenente il vettore risultante dei tre registrati e presenti nel sistema
+        self.df[column + '.mag'] = np.sqrt(
+            self.df[column + '.x'] ** 2 + self.df[column + '.y'] ** 2 + self.df[column + '.z'] ** 2)
+
 
 # sezione in cui si testeranno tutte le funzioni create
 if __name__ == '__main__':
-    print('Inizio prova funzioni')
+    # analisi del dataset  contenente i dati combinati
+    print('Stampo i dati combinati')
+    combined = Dataset()
+    combined.apriDataset(filename_, 0)
+    combined.stampaDataset()
 
-    file = 'sensor_c1FolG72RBKuDV2RLq1b-P.txt'
-    openDataset(file)
-    # convertDataset(file)
+    combined.produce_magnitude('userAcceleration')
+    combined.produce_magnitude('rotationRate')
+    combined.stampaDataset()
+
+    # analisi del dataset  contenente i dati dell'accelerometro
+    print('Stampo i dati accelerometro')
+    accelerometer = Dataset()
+    accelerometer.apriDataset(filename_, 1)
+    accelerometer.stampaDataset()
+
+    # analisi del dataset  contenente i dati del giroscopio
+    print('Stampo i dati giroscopio')
+    gyroscope = Dataset()
+    gyroscope.apriDataset(filename_, 2)
+    gyroscope.stampaDataset()
