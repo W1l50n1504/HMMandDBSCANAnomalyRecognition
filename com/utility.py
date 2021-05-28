@@ -60,27 +60,17 @@ class Dataset:
         self.df[column + '.mag'] = np.sqrt(
             self.df[column + '.x'] ** 2 + self.df[column + '.y'] ** 2 + self.df[column + '.z'] ** 2)
 
+    def main(self, filename_):
+        self.apriDataset(filename_, 0)
+        self.stampaDataset()
+
+        self.produce_magnitude('userAcceleration')
+        self.produce_magnitude('rotationRate')
+        self.stampaDataset()
+
 
 # sezione in cui si testeranno tutte le funzioni create
 if __name__ == '__main__':
-    # analisi del dataset  contenente i dati combinati
-    print('Stampo i dati combinati')
-    combined = Dataset()
-    combined.apriDataset(filename_, 0)
-    combined.stampaDataset()
-
-    combined.produce_magnitude('userAcceleration')
-    combined.produce_magnitude('rotationRate')
-    combined.stampaDataset()
-
-    # analisi del dataset  contenente i dati dell'accelerometro
-    print('Stampo i dati accelerometro')
-    accelerometer = Dataset()
-    accelerometer.apriDataset(filename_, 1)
-    accelerometer.stampaDataset()
-
-    # analisi del dataset  contenente i dati del giroscopio
-    print('Stampo i dati giroscopio')
-    gyroscope = Dataset()
-    gyroscope.apriDataset(filename_, 2)
-    gyroscope.stampaDataset()
+    # creazione dell'oggetto che controlla il contenuto del dataset devicemotion_data
+    ds = Dataset()
+    ds.main(filename_)
