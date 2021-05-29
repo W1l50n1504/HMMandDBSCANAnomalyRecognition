@@ -6,6 +6,9 @@ questi tipi di attività sono: scendere le scale, salire le scale, stare seduti,
 
 import numpy as np
 from hmmlearn.hmm import GaussianHMM
+from matplotlib import pyplot as plt
+import seaborn as sns
+
 from com.utility import *
 
 
@@ -16,49 +19,100 @@ class HiddenMarkovModels():
         # e il numero di iterazioni che deve effettuare il sistema
         # data e' la lista contente i dati su cui allenare la rete
 
-        self.model = GaussianHMM(n_components=6, n_iter=1000).fit(np.reshape(data, [len(data), 1]))
+        self.data = data
+
+        # fitting dei dati nel modello
+        print('Creazione del modello e fitting dei dati...')
+        self.model = GaussianHMM(n_components=6, n_iter=1000).fit(np.reshape(self.data, np.shape(self.data)))
+        print('fine fitting')
 
         # classifica ogni osservazione c
-        self.hidden_states = self.model.predict(np.reshape(data, [len(data), 1]))
-
-    def fitHMM(self, data, nSamples):
-        # fit Gaussian HMM to Q
-        model = GaussianHMM(n_components=2, n_iter=1000).fit(np.reshape(data, [len(data), 1]))
-
-        # classify each observation as state 0 or 1
-        hidden_states = model.predict(np.reshape(data, [len(data), 1]))
+        print('creazione hidden states')
+        self.hidden_states = self.model.predict(np.reshape(self.data, np.shape(self.data)))
+        print('fine creazione hidden states')
 
         # find parameters of Gaussian HMM
-        mus = np.array(model.means_)
-        sigmas = np.array(np.sqrt(np.array([np.diag(model.covars_[0]), np.diag(model.covars_[1])])))
-        P = np.array(model.transmat_)
+        self.mus = np.array(self.model.means_)
+        self.sigmas = np.array(np.sqrt(np.array([np.diag(self.model.covars_[0]), np.diag(self.model.covars_[1])])))
+        self.P = np.array(self.model.transmat_)
 
         # find log-likelihood of Gaussian HMM
-        logProb = model.score(np.reshape(data, [len(data), 1]))
+        self.logProb = self.model.score(np.reshape(self.data, np.shape(self.data)))
 
         # generate nSamples from Gaussian HMM
-        samples = model.sample(nSamples)
+        samples = self.model.sample(nSamples)
 
         # re-organize mus, sigmas and P so that first row is lower mean (if not already)
-        if mus[0] > mus[1]:
-            mus = np.flipud(mus)
-            sigmas = np.flipud(sigmas)
-            P = np.fliplr(np.flipud(P))
-            hidden_states = 1 - hidden_states
+        if self.mus.any():
+            # if self.mus[0] > self.mus[1]:
+            self.mus = np.flipud(self.mus)
+            self.sigmas = np.flipud(self.sigmas)
+            self.P = np.fliplr(np.flipud(self.P))
+            self.hidden_states = 1 - self.hidden_states
 
-        return hidden_states, mus, sigmas, P, logProb, samples
+    def plot(self, ylabel, filename):
+        print('Inizio plotting degli HMM')
 
-    # load annual flow data for the Colorado River near the Colorado/Utah state line
-    # AnnualQ = np.loadtxt('AnnualQ.txt')
+        sns.set()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
-    # log transform the data and fit the HMM
-    # logQ = np.log(AnnualQ)
-    # hidden_states, mus, sigmas, P, logProb, samples = fitHMM(logQ, 100)
+        xs = np.arange(len(self.data))
+        #print(len(self.data)) = 7352
+
+
+        masks = self.hidden_states == 0 #7352
+        print('xs[masks]', len(xs[masks]))
+        print('self.data[masks]', len(self.data[masks]))
+        ax.scatter(xs[masks], self.data[masks], c='r', label='STANDING')
+
+
+        masks = self.hidden_states == 1
+        ax.scatter(xs[masks], self.data[masks], c='b', label='SITTING')
+
+        masks = self.hidden_states == 2
+        ax.scatter(xs[masks], self.data[masks], c='g', label='LAYING')
+
+        masks = self.hidden_states == 3
+        ax.scatter(xs[masks], self.data[masks], c='y', label='WALKING')
+
+        masks = self.hidden_states == 4
+        ax.scatter(xs[masks], self.data[masks], c='c', label='WALKING DOWNSTAIRS')
+
+        masks = self.hidden_states == 5
+        ax.scatter(xs[masks], self.data[masks], c='w', label='WALKING UPSTAIRS')
+
+        ax.plot(xs, self.data, c='k')
+
+        ax.set_xlabel('Year')
+        ax.set_ylabel(ylabel)
+        fig.subplots_adjust(bottom=0.2)
+        handles, labels = plt.gca().get_legend_handles_labels()
+        fig.legend(handles, labels, loc='lower center', ncol=2, frameon=True)
+        fig.savefig(filename)
+        fig.clf()
+
+        return None
 
 
 if __name__ == '__main__':
     ds = Dataset()
-    ds.main(filename_)
-    accel = ds.retAccel()
+    trainData_X, trainActivity_y, testData_X, testActivity_y = ds.main()
 
-    print(accel)
+    ylabel = 'ylabel'
+    filename = absPath_ + '/immagine/grafico.png'
+
+    # print('\ntrainData_X\n', trainData_X)
+
+    # print('\ntrainActivity_y\n', trainActivity_y)
+
+    # print('\ntestData_X\n', testData_X)
+
+    # print('\ntestActivity_y\n', testActivity_y)
+
+    # print(np.reshape(trainData_X, np.shape(trainData_X)), 6)
+
+    hmm = HiddenMarkovModels(trainData_X, 100)
+
+    plt.switch_backend('agg')  # turn off display when running with Cygwin
+    hmm.plot(ylabel, filename)

@@ -23,7 +23,6 @@ class Dataset():
 
     def __init__(self):
         print('Testset caricato')
-        print(absPath_)
         self.datasetPath = absPath_ + '/train_dataset/'
 
         self.labelDict = {'WALKING': 0, 'WALKING_UPSTAIRS': 1, 'WALKING_DOWNSTAIRS': 2, 'SITTING': 3, 'STANDING': 4,
@@ -36,8 +35,8 @@ class Dataset():
         self.trainset = pd.read_csv(self.datasetPath + trainFilename_, index_col=0)
 
         # provo stampa dei testset e trainset
-        self.stampaTestset()
-        self.stampaTrainset()
+        #self.stampaTestset()
+        #self.stampaTrainset()
 
     def stampaTestset(self):
         # viene effettuata la stampa del dataset caricato
@@ -55,8 +54,8 @@ class Dataset():
             self.df[column + '.x'] ** 2 + self.df[column + '.y'] ** 2 + self.df[column + '.z'] ** 2)
 
     def loadTestset(self):
-        self.stampaTestset()
-        self.stampaTrainset()
+        #self.stampaTestset()
+        #self.stampaTrainset()
 
         # sono tutti file in cui si caricheranno i dati di testset modificati
         train_X = self.trainset.values[:, :-2]
@@ -77,11 +76,7 @@ class Dataset():
         # self.stampaTestset()
         # self.stampaTrainset()
 
-        trainAndTest = self.loadTestset()
-        print('Finito!')
-
-        return trainAndTest
-
+        return self.loadTestset()
 
 # sezione in cui si testeranno tutte le funzioni create
 
