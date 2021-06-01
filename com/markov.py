@@ -16,15 +16,13 @@ mydpi = 96
 class HiddeMarkovModels:
 
     def __init__(self, nSamples):
-
-        self.ds = Dataset(walkDown)
-        self.ds.main()
+        self.ds = Dataset(trainset)
         self.data = self.ds.toList()
         self.logdata = np.log(self.data)
 
-        #effettua il fitting dei modelli sui dati caricati dal dataset
+        # effettua il fitting dei modelli sui dati caricati dal dataset
         print('Creazione del modello e fitting dei dati...')
-        self.model = GaussianHMM(n_components=2, n_iter=1000).fit(np.reshape(self.logdata, [len(self.logdata), 1]))
+        self.model = GaussianHMM(n_components=6, n_iter=1000).fit(np.reshape(self.logdata, [len(self.logdata), 1]))
         print('fine fitting')
         # classificazione di ogni osservazione come stato 1 o 2 (al momento riconosce solo un tipo di attività)
         print('creazione hidden states')
@@ -56,11 +54,24 @@ class HiddeMarkovModels:
         xs = np.arange(len(self.logdata))
 
         masks = self.hidden_states == 0
-        ax.scatter(xs[masks], self.logdata[masks], c='r', label='WalkingDwnStairs')
+        ax.scatter(xs[masks], self.logdata[masks], c='red', label='WalkingDwnStairs')
 
         masks = self.hidden_states == 1
-        ax.scatter(xs[masks], self.logdata[masks], c='b', label='NotWalkingDwnStairs')
-        #decommentare per congiungere tutti i punti sul grafico
+        ax.scatter(xs[masks], self.logdata[masks], c='blue', label='WalkingUpstairs')
+
+        masks = self.hidden_states == 2
+        ax.scatter(xs[masks], self.logdata[masks], c='green', label='Sitting')
+
+        masks = self.hidden_states == 3
+        ax.scatter(xs[masks], self.logdata[masks], c='yellow', label='Standing')
+
+        masks = self.hidden_states == 4
+        ax.scatter(xs[masks], self.logdata[masks], c='orange', label='Walking')
+
+        masks = self.hidden_states == 5
+        ax.scatter(xs[masks], self.logdata[masks], c='black', label='Jogging')
+
+        # decommentare per congiungere tutti i punti sul grafico
         # ax.plot(xs, self.logdata, c='k')
 
         ax.set_xlabel('Valore')
@@ -95,6 +106,9 @@ class HiddeMarkovModels:
         l1, = ax.plot(x_0, fx_0, c='r', linewidth=2, label='WalkingDwnStairs Distn')
         l2, = ax.plot(x_1, fx_1, c='b', linewidth=2, label='NotWalkingDwnStairs Distn')
         l3, = ax.plot(x, fx, c='k', linewidth=2, label='Combined State Distn')
+        l4, = ax.plot(x_0, fx_0, c='r', linewidth=2, label='WalkingDwnStairs Distn')
+        l5, = ax.plot(x_1, fx_1, c='b', linewidth=2, label='NotWalkingDwnStairs Distn')
+        l6, = ax.plot(x, fx, c='k', linewidth=2, label='Combined State Distn')
 
         fig.subplots_adjust(bottom=0.15)
         handles, labels = plt.gca().get_legend_handles_labels()
@@ -107,4 +121,4 @@ class HiddeMarkovModels:
 if __name__ == '__main__':
     hmm = HiddeMarkovModels(100)
     hmm.plotScatter()
-    # hmm.plotDistribution()
+    hmm.plotDistribution()
