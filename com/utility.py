@@ -1,16 +1,32 @@
 """
 File contenente tutte le funzioni di utility, come lettura dei dataset, elaborazione degli stessi ed estrazione delle colonne contenenti i dati che utilizzeremo per allenare e testare gli HMM
+il nome delle cartelle indica un'attività specifica:
+
+    dws: walking downstairs
+    ups: walking upstairs
+    sit: sitting
+    std: standing
+    wlk: walking
+    jog: jogging
 """
 
 import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
+walkDown = 'dws/'
+walkUp = 'ups/'
+sit = 'sit/'
+stand = 'std/'
+walk = 'wlk/'
+jogging = 'jog/'
+
+column1 = 'userAcceleration'
+# column2 = 'rotationRate'
+magnitude = 'userAcceleration.mag'
 
 # variabile globale che indica il dataset del tipo di attività che si vuole esaminare
-testFilename_ = '/test.csv'
-trainFilename_ = '/train.csv'
+dataFilename_ = 'sub_1.csv'
 
 # serve a conoscere l'absolute path della cartella in cui si trova il file utility
 absPath_ = os.getcwd()
@@ -19,71 +35,55 @@ absPath_ = os.getcwd()
 # posizione delle cartelle dei vari dataset
 
 
-class Dataset():
+class Dataset:
 
-    def __init__(self):
-        print('Testset caricato')
-        self.datasetPath = absPath_ + '/train_dataset/'
+    def __init__(self, choice):
+        #print('Carico il Dataset...')
+        self.datasetPath = absPath_ + '/dataset/' + choice
+        # carico il dataset
+        self.ds = pd.read_csv(self.datasetPath + dataFilename_, index_col=0)
+        self.dsm = pd.DataFrame()
+        #print('Dataset caricato')
 
-        self.labelDict = {'WALKING': 0, 'WALKING_UPSTAIRS': 1, 'WALKING_DOWNSTAIRS': 2, 'SITTING': 3, 'STANDING': 4,
-                          'LAYING': 5}
-
-        # carico i testset
-        self.testset = pd.read_csv(self.datasetPath + testFilename_, index_col=0)
-
-        # carico i trainset
-        self.trainset = pd.read_csv(self.datasetPath + trainFilename_, index_col=0)
-
-        # provo stampa dei testset e trainset
-        #self.stampaTestset()
-        #self.stampaTrainset()
+    def stampaDataset(self):
+        # viene effettuata la stampa del dataset caricato
+        print('Stampa del dataset')
+        print(self.ds.head())
 
     def stampaTestset(self):
-        # viene effettuata la stampa del dataset caricato
+        # viene effettuata la stampa del testset
         print('Stampa del testset')
-        print(self.testset.head())
+        print(self.dsm.head())
 
-    def stampaTrainset(self):
-        # viene effettuata la stampa del dataset caricato
-        print('Stampa del trainset')
-        print(self.trainset.head())
+    def produceMagnitude(self):
+        self.ds[magnitude] = np.sqrt(
+            self.ds[column1 + '.x'] ** 2 + self.ds[column1 + '.y'] ** 2 + self.ds[
+                column1 + '.z'] ** 2)
+        #print('Magnitudine aggiunta correttamente nel dataset')
 
-    def produceMagnitude(self, column):
-        # controllare se serve ancora o posso utilizzarla in qualche maniera
-        self.df[column + '.mag'] = np.sqrt(
-            self.df[column + '.x'] ** 2 + self.df[column + '.y'] ** 2 + self.df[column + '.z'] ** 2)
+    def setTestset(self):
+        self.dsm = self.ds[magnitude]
 
-    def loadTestset(self):
-        #self.stampaTestset()
-        #self.stampaTrainset()
+    def getTestset(self):
+        return self.dsm
 
-        # sono tutti file in cui si caricheranno i dati di testset modificati
-        train_X = self.trainset.values[:, :-2]
-
-        train_y = self.trainset['Activity']
-        train_y = train_y.map(self.labelDict).values
-
-        test_X = self.testset.values[:, :-2]
-
-        test_y = self.testset
-        test_y = test_y['Activity'].map(self.labelDict).values
-
-        return train_X, train_y, test_X, test_y
+    def toList(self):
+        return self.dsm.tolist()
 
     def main(self):
-        print('Sto caricando i file necessari...')
+        # self.stampaDataset()
+        self.produceMagnitude()  # calcola una nuova feature del dataset in cui attraverso una formula si ottiene un nuovo valore che permetta di tener conto delle variazioni che avvengono sui 3 assi x,y e z
 
+        # self.stampaDataset()
+        self.setTestset()  # copia la colonna creata della magnitudine in un nuovo dataset
         # self.stampaTestset()
-        # self.stampaTrainset()
-
-        return self.loadTestset()
-
-# sezione in cui si testeranno tutte le funzioni create
+        #print('Fine elaborazione dati')
 
 
 if __name__ == '__main__':
-    ds = Dataset()
-    trainAndTest = ds.main()
+    ds1 = Dataset(walkDown)
+    ds1.main()
+    lista = ds1.toList()
+    print('stampo lista', lista)
 
-    for i in range(0, 3):
-        print(trainAndTest[i])
+    print('stampo testset senza funzione\n', ds1.getTestset())
