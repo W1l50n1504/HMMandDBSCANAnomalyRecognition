@@ -1,76 +1,167 @@
 """
-File contenente tutte le funzioni di utility, come lettura dei dataset, creazione di file e tutto il resto
-spiegazione nomenclatura cartelle database:
+File contenente tutte le funzioni di utility, come lettura dei dataset, elaborazione degli stessi ed estrazione delle colonne contenenti i dati che utilizzeremo per allenare e testare gli HMM
+il nome delle cartelle indica un'attività specifica:
 
     dws: walking downstairs
     ups: walking upstairs
     sit: sitting
-    std: s  tanding
+    std: standing
     wlk: walking
     jog: jogging
-
 """
+
 import os
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
+walkDown = '/dataset/dws/sub_1.csv'
+walkUp = '/dataset/ups/sub_1.csv'
+sit = '/dataset/sit/sub_1.csv'
+stand = '/dataset/std/sub_1.csv'
+walk = '/dataset/wlk/sub_1.csv'
+jogging = '/dataset/jog/sub_1.csv'
 
-# rendi questa variabile globale
-filename_ = 'dws_1/sub_1.csv'
+trainset = '/dataset/trainset.csv'
+testset = '/dataset/testset.csv'
+
+column1 = 'userAcceleration'
+# column2 = 'rotationRate'
+magnitude = 'userAcceleration.mag'
+
+# variabile globale che indica il dataset del tipo di attività che si vuole esaminare
+dataFilename_ = 'sub_1.csv'
+
+# serve a conoscere l'absolute path della cartella in cui si trova il file utility
+absPath_ = os.getcwd()
+
+
+# posizione delle cartelle dei vari dataset
 
 
 class Dataset:
 
-    def __init__(self):
-        # serve a conoscere l'absolute path della cartella in cui si trova il file utility
-        self.abs_path = os.getcwd()
+    def __init__(self, choice):
+        """
+        costruttore della classe Dataset
+        :param choice: string, indica il percorso da utilizzare per caricare il dataset che si è scelto
+        """
+        print('Carico il Dataset...')
+        self.datasetPath = absPath_ + choice
+        # print(self.datasetPath)
+        self.ds = pd.read_csv(self.datasetPath, index_col=0)
+        print('Dataset caricato')
 
-        # posizione delle cartelle dei vari dataset
-
-        self.combined_dataset = self.abs_path + '/train_dataset/A_DeviceMotion_data/'
-        self.accelerometer_dataset = self.abs_path + '/train_dataset/B_Accelerometer_data/'
-        self.gyscope_dataset = self.abs_path + '/train_dataset/C_Gyroscope_data/'
-
-        self.df = 0
-
-    def apriDataset(self, filename, dataset):
-        # attraverso il numero passatogli  sceglie il dataset da caricare,
-        # 0 quello contenente la combinazione dei dati sul giroscopio e l'accelerometro
-        # 1 quello contenente i dati sull'accelerometro
-        # 2 quello contenente i dati sul giroscopio
-        if dataset == 0:
-            self.df = pd.read_csv(os.path.join(self.combined_dataset, filename), index_col=0)
-
-        elif dataset == 1:
-            self.df = pd.read_csv(os.path.join(self.accelerometer_dataset, filename), index_col=0)
-
-        elif dataset == 2:
-            self.df = pd.read_csv(os.path.join(self.gyscope_dataset, filename), index_col=0)
-
-        else:
-            print("Non è stata inserita un'opzione valida")
+        self.dsm = pd.DataFrame()
+        # print(self.ds)
 
     def stampaDataset(self):
-        # viene effettuata la stampa del dataset caricato
-        print(self.df.head())
+        """
+         viene effettuata la stampa del dataset caricato
+        :return: None
+        """
 
-    def produce_magnitude(self, column):
-        # crea la nuova colonna contenente il vettore risultante dei tre registrati e presenti nel sistema
-        self.df[column + '.mag'] = np.sqrt(
-            self.df[column + '.x'] ** 2 + self.df[column + '.y'] ** 2 + self.df[column + '.z'] ** 2)
+        print('Stampa del dataset\n')
+        print(self.ds.head())
 
-    def main(self, filename_):
-        self.apriDataset(filename_, 0)
-        self.stampaDataset()
+    def stampaTestset(self):
+        """
+         viene effettuata la stampa del dataset caricato che ha subito delle modifiche,
+         come il calcolo della magnitudine
+        :return: None
+        """
+        # viene effettuata la stampa del testset
+        print('Stampa del testset\n')
+        print(self.dsm.head())
 
-        self.produce_magnitude('userAcceleration')
-        self.produce_magnitude('rotationRate')
-        self.stampaDataset()
+    def produceMagnitude(self):
+        """
+        metodo utile per accorpare i dati registrati lungo i tre assi dell'accelerometro
+        eleva al quadrato i dato dei singoli assi, li somma e infine effettua la radice quadrata
+        inserendo il risultato in una nuova colonna chiamata userAcceleration.mag
+        :return:
+        """
+        self.ds[magnitude] = np.sqrt(
+            self.ds[column1 + '.x'] ** 2 + self.ds[column1 + '.y'] ** 2 + self.ds[
+                column1 + '.z'] ** 2)
+        # print('Magnitudine aggiunta correttamente nel dataset')
+
+    def setTestset(self):
+        """
+        copia semplicemente i dati contenuti nella colonna userAcceleration.mag in un secondo dataset appartenente sempre alla classe
+        :return:
+        """
+        self.dsm = self.ds[magnitude]
+
+    def getTestset(self):
+        """
+        restituisce il dataset contenente solo la colonna userAcceleration.mag
+        :return:
+        """
+        return self.dsm
+
+    def toList(self):
+        """
+        serve per convertire il dataset caricato in memoria in una lista, verrà utilizzata per l'elaborazione dei dati (utilizzando la log-likelihood) durante
+        il training del modello
+
+        :return: list, lista di float
+        """
+        # return self.dsm.tolist()
+        return self.ds.values.tolist()
+
+    def main(self):
+        # self.stampaDataset()
+        self.produceMagnitude()
+        # self.stampaDataset()
+        self.setTestset()  # copia la colonna creata della magnitudine in un nuovo dataset
+    # self.stampaTestset()
+    # print('Fine elaborazione dati')
 
 
-# sezione in cui si testeranno tutte le funzioni create
+def unisciDiversiDataset():
+    """
+    funzione utilizzata per ottenere il trainset.csv, semplicemente ho concatenato tutti i file sub_1.csv
+    presenti in ogni cartella per creare un trainset su cui allenare il modello
+    """
+
+    ds0 = Dataset(walkDown)
+    ds1 = Dataset(walkUp)
+    ds2 = Dataset(sit)
+    ds3 = Dataset(stand)
+    ds4 = Dataset(walk)
+    ds5 = Dataset(jogging)
+
+    ds0.main()
+    ds1.main()
+    ds2.main()
+    ds3.main()
+    ds4.main()
+    ds5.main()
+
+    # listds = [ds0.getTestset(), ds1.getTestset(), ds2.getTestset(), ds3.getTestset(), ds4.getTestset(),
+    # ds5.getTestset()]
+    # indice = ds0.dsm.shape[0] + ds1.dsm.shape[0] + ds2.dsm.shape[0] + ds3.dsm.shape[0] + ds4.dsm.shape[0] + \
+    # ds5.dsm.shape[0]
+
+    # index = np.arange(indice)
+
+    listds = [ds0.dsm, ds1.dsm, ds2.dsm, ds3.dsm, ds4.dsm,
+              ds5.dsm]
+
+    # print('index\n',index)
+
+    # pd.read_csv( absPath_ + '/dataset/' + testset, index_col=0)
+    ds6 = pd.concat(listds).reset_index(drop=True)
+
+    print('\nstampo ds6\n', ds6.head())
+
+    ds6.to_csv(absPath_ + trainset, index=True)
+    # print(ds6.head)
+
+
 if __name__ == '__main__':
-    # creazione dell'oggetto che controlla il contenuto del dataset devicemotion_data
-    ds = Dataset()
-    ds.main(filename_)
+    # unisciDiversiDataset()
+    ds = Dataset(trainset)
+
+    lista = ds.toList()
+    print('stampo dataset senza funzione\n', lista)  # vuota per ora
