@@ -41,6 +41,10 @@ absPath_ = os.getcwd()
 class Dataset:
 
     def __init__(self, choice):
+        """
+        costruttore della classe Dataset
+        :param choice: string, indica il percorso da utilizzare per caricare il dataset che si è scelto
+        """
         print('Carico il Dataset...')
         self.datasetPath = absPath_ + choice
         # print(self.datasetPath)
@@ -51,28 +55,57 @@ class Dataset:
         # print(self.ds)
 
     def stampaDataset(self):
-        # viene effettuata la stampa del dataset caricato
+        """
+         viene effettuata la stampa del dataset caricato
+        :return: None
+        """
+
         print('Stampa del dataset\n')
         print(self.ds.head())
 
     def stampaTestset(self):
+        """
+         viene effettuata la stampa del dataset caricato che ha subito delle modifiche,
+         come il calcolo della magnitudine
+        :return: None
+        """
         # viene effettuata la stampa del testset
         print('Stampa del testset\n')
         print(self.dsm.head())
 
     def produceMagnitude(self):
+        """
+        metodo utile per accorpare i dati registrati lungo i tre assi dell'accelerometro
+        eleva al quadrato i dato dei singoli assi, li somma e infine effettua la radice quadrata
+        inserendo il risultato in una nuova colonna chiamata userAcceleration.mag
+        :return:
+        """
         self.ds[magnitude] = np.sqrt(
             self.ds[column1 + '.x'] ** 2 + self.ds[column1 + '.y'] ** 2 + self.ds[
                 column1 + '.z'] ** 2)
         # print('Magnitudine aggiunta correttamente nel dataset')
 
     def setTestset(self):
+        """
+        copia semplicemente i dati contenuti nella colonna userAcceleration.mag in un secondo dataset appartenente sempre alla classe
+        :return:
+        """
         self.dsm = self.ds[magnitude]
 
     def getTestset(self):
+        """
+        restituisce il dataset contenente solo la colonna userAcceleration.mag
+        :return:
+        """
         return self.dsm
 
     def toList(self):
+        """
+        serve per convertire il dataset caricato in memoria in una lista, verrà utilizzata per l'elaborazione dei dati (utilizzando la log-likelihood) durante
+        il training del modello
+
+        :return: list, lista di float
+        """
         # return self.dsm.tolist()
         return self.ds.values.tolist()
 
@@ -87,7 +120,8 @@ class Dataset:
 
 def unisciDiversiDataset():
     """
-    funzione utilizzata per ottenere il trainset.csv, semplicemente ho unito tutti i file sub_1.csv presenti in ogni cartella per creare un trainset su cui allenare la ia
+    funzione utilizzata per ottenere il trainset.csv, semplicemente ho concatenato tutti i file sub_1.csv
+    presenti in ogni cartella per creare un trainset su cui allenare il modello
     """
 
     ds0 = Dataset(walkDown)
@@ -126,8 +160,8 @@ def unisciDiversiDataset():
 
 
 if __name__ == '__main__':
-    #unisciDiversiDataset()
+    # unisciDiversiDataset()
     ds = Dataset(trainset)
 
     lista = ds.toList()
-    print('stampo dataset senza funzione\n', lista) #vuota per ora
+    print('stampo dataset senza funzione\n', lista)  # vuota per ora
