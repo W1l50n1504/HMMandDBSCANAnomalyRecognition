@@ -6,7 +6,7 @@ from scipy import stats as ss
 
 from utility import *
 
-filename1 = absPath_ + '/immagine/grafico.png'
+filename1 = absPath_ + '/immagine/grafico2.png'
 filename2 = absPath_ + '/immagine/graficoDistribuzione.png'
 
 mydpi = 96
@@ -23,11 +23,11 @@ class HiddeMarkovModels:
         """
 
         self.ds = Dataset(dataset_)
-        self.data = self.ds.toList()
+        self.data = self.ds.toArray()
         self.logdata = np.log(self.data)
         self.nSamples = nSamples
 
-    def train(self):
+    def fit(self):
         """
         Metodo di train in cui viene creato il modello e viene allenato sul dataset caricato durante il costruttore
         :return:
@@ -37,7 +37,9 @@ class HiddeMarkovModels:
         self.model = GaussianHMM(n_components=6, n_iter=1000).fit(np.reshape(self.logdata, [len(self.logdata), 1]))
         print('fine fitting')
 
-        # classificazione di ogni osservazione come stato 1 o 2 (al momento riconosce solo un tipo di attività)
+    def predict(self):
+
+        # classificazione di ogni osservazione come stato
         print('creazione hidden states')
         self.hidden_states = self.model.predict(np.reshape(self.logdata, [len(self.logdata), 1]))
         print('fine creazione hidden states')
@@ -69,6 +71,7 @@ class HiddeMarkovModels:
 
         :return:
         """
+        print('Creazione dello Scatter Plot')
         sns.set()
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -104,6 +107,7 @@ class HiddeMarkovModels:
         fig.set_size_inches(800 / mydpi, 800 / mydpi)
         fig.savefig(filename1)
         fig.clf()
+        print('ScatterPlot creato')
 
     def plotDistribution(self):
         """
@@ -111,6 +115,7 @@ class HiddeMarkovModels:
         una per ogni hidden state e infine una funzione che comprende tutte le gaussiane caricate
         :return:
         """
+        print('Creazione grafico di distribuzione')
         # calcolo della distribuzione stazionaria
         eigenvals, eigenvecs = np.linalg.eig(np.transpose(self.P))
         one_eigval = np.argmin(np.abs(eigenvals - 1))
@@ -156,9 +161,12 @@ class HiddeMarkovModels:
         fig.savefig(filename2)
         fig.clf()
 
+        print('Fine creazione grafico')
+
 
 if __name__ == '__main__':
     hmm = HiddeMarkovModels(100, trainset)
-    hmm.train()
+    hmm.fit()
+    hmm.predict()
     hmm.plotScatter()
     hmm.plotDistribution()
