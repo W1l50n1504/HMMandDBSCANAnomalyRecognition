@@ -24,6 +24,8 @@ nameXtest = 'total_acc_x_test.txt'
 nameYtest = 'total_acc_y_test.txt'
 nameZtest = 'total_acc_z_test.txt'
 
+hmmGraph = absPath_ + '/immagine/Markov/grafico.png'
+
 checkPointPath = absPath_ + '/checkpoint'
 graphAccuracy = absPath_ + '/immagine/CNN/'
 
@@ -31,18 +33,22 @@ labelDict = {'WALKING': 0, 'WALKING_UPSTAIRS': 1, 'WALKING_DOWNSTAIRS': 2,
              'SITTING': 3, 'STANDING': 4, 'LAYING': 5}
 
 
+def norm(data):
+    return (data - data.mean()) / data.std() + np.finfo(np.float32).eps
+
+
 def produceMagnitude(flag):
     magnitude = []
     if flag:
 
-        x = load_X(pathToSignalTrain + nameXtrain)
-        y = load_X(pathToSignalTrain + nameYtrain)
-        z = load_X(pathToSignalTrain + nameZtrain)
+        x = norm(load_X(pathToSignalTrain + nameXtrain))
+        y = norm(load_X(pathToSignalTrain + nameYtrain))
+        z = norm(load_X(pathToSignalTrain + nameZtrain))
 
     else:
-        x = load_X(pathToSignalTest + nameXtest)
-        y = load_X(pathToSignalTest + nameYtest)
-        z = load_X(pathToSignalTest + nameZtest)
+        x = norm(load_X(pathToSignalTest + nameXtest))
+        y = norm(load_X(pathToSignalTest + nameYtest))
+        z = norm(load_X(pathToSignalTest + nameZtest))
 
     for i in range(0, len(x)):
         magnitude.append(np.sqrt(x[i] ** 2 + y[i] ** 2 + z[i] ** 2))
@@ -134,14 +140,14 @@ def dataProcessingHMM(X_train, y_train, X_test, y_test):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42)
 
-
-    X_train= X_train.reshape((X_train.shape[0]*X_train.shape[1]), X_train.shape[2])
-    #print(X_train.shape)
+    X_train = X_train.reshape((X_train.shape[0] * X_train.shape[1]), X_train.shape[2])
+    # print(X_train.shape)
 
     X_test = X_test.reshape((X_test.shape[0] * X_test.shape[1]), X_test.shape[2])
-    #print(X_train.shape)
-
-    #X_train, y_train, X_test, y_test = np.log(X_train), np.log(y_train), np.log(X_test), np.log(y_test)
+    # print(X_train.shape)
+    X_train = X_train.tolist()
+    X_test = X_test.tolist()
+    # X_train, y_train, X_test, y_test = np.log(X_train), np.log(y_train), np.log(X_test), np.log(y_test)
     print('fine elaborazione dati')
     return X_train, y_train, X_test, y_test, X_val, y_val
 
@@ -176,17 +182,17 @@ def dataProcessingCNN(X_train, y_train, X_test, y_test):
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
-def PlotHMM():
+def PlotHMM(length_train, length_val, length_test):
+    print('Inizio plotting Hidden Markov Model')
     plt.figure(figsize=(7, 5))
     plt.scatter(np.arange(length_train), train_scores, c='b', label='trainset')
     plt.scatter(np.arange(length_train, length_val), val_scores, c='r', label='testset - imitation')
     plt.scatter(np.arange(length_val, length_test), test_scores, c='g', label='testset - original')
-    plt.title(f'User: {user} | HMM states: {n_components} | GMM components: {n_mix}')
+    plt.title('Feature')
     plt.legend(loc='lower right')
+    print('Fine plotting')
 
-    username = 'user_' + str(user)
-    figname = username + "_comp_" + str(n_components) + "_mix_" + str(n_mix) + '.png'
-    plt.savefig("./hmm_plots/" + str(username) + "/" + str(figname))
+    plt.savefig(hmmGraph)
     plt.show()
 
 
