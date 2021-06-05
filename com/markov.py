@@ -1,66 +1,54 @@
-from hmmlearn import hmm
+from hmmlearn.hmm import GaussianHMM
+import numpy as np
+from matplotlib import pyplot as plt
+import seaborn as sns
+from scipy import stats as ss
+import numpy as np
+import pandas as pd
+from keras import *
+import os
+
 from utility import *
 
+trainset = '/dataset/trainset.csv'
+testset = '/dataset/testset.csv'
 
-def fit_hmm():
-    X_train, y_train, X_test, y_test = loadDataHMM()
-    X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
+absPath_ = os.getcwd()
+pathTrain = absPath_ + trainset
+pathTest = absPath_ + testset
 
-    print('Creazione del modello...')
-    n_components = 6
+mydpi = 96
 
-    startprob = np.zeros(n_components)
-    startprob[0] = 1
 
-    transmat = np.zeros((n_components, n_components))
-    transmat[0, 0] = 1
-    transmat[-1, -1] = 1
+def fit(logdata):
 
-    for i in range(transmat.shape[0] - 1):
-        if i != transmat.shape[0]:
-            for j in range(i, i + 2):
-                transmat[i, j] = 0.5
+    # effettua il fitting dei modelli sui dati caricati dal dataset
+    print('Creazione del modello e fitting dei dati...')
+    model = GaussianHMM(n_components=6, n_iter=1000).fit(np.reshape(logdata, [len(logdata), 1]))
+    print('fine fitting')
 
-    model = hmm.GMMHMM(n_components=n_components, covariance_type="diag")
+    # classificazione di ogni osservazione come stato
+    print('creazione hidden states')
+    hidden_states = model.predict(np.reshape(logdata, [len(logdata), 1]))
+    print('fine creazione hidden states')
 
-    model.startprob_ = np.array(startprob)
-    model.transmat_ = np.array(transmat)
+    # trova i parametri di un HMM Gaussiano
+    mus = np.array(model.means_)
+    sigmas = np.array(np.sqrt(np.array([np.diag(model.covars_[0]), np.diag(model.covars_[1])])))
+    P = np.array(model.transmat_)
 
-    print('Fine creazione del modello')
+    # trova la log-likelihood di una HMM Gaussiana
+    logProb = model.score(np.reshape(data, [len(logdata), 1]))
 
-    print('Inizio fitting del modello...')
-    # print('X_train\n', X_train)
-    model.fit(X_train);
-    print('Fine fitting del modello')
+    # genera nSamples dagli HMM Gaussiani
+    samples = model.sample(nSamples)
 
-    print('Inizio valutazione...')
-    train_scores = []
-    test_scores = []
-    val_scores = []
-
-    print('prima parte')
-    for i in range(len(np.array(y_train))):
-        train_score = model.score(X_train)
-        train_scores.append(train_score)
-
-    print('seconda parte')
-    for i in range(len(np.array(y_test))):
-        test_score = model.score(X_test)
-        test_scores.append(test_score)
-
-    print('terza parte')
-    for i in range(len(np.array(y_val))):
-        val_score = model.score(X_val)
-        val_scores.append(val_score)
-
-        length_train = len(train_scores)
-        length_val = len(val_scores) + length_train
-        length_test = len(test_scores) + length_val
-    print('Fine valutazione')
-
-    return length_train, length_val, length_test
+    # riorganizza i mu, i sigma e P in modo che la prima colonna contenga i lower mean (se non già presenti)
+    if mus[0] > mus[1]:
+        mus = np.flipud(mus)
+        sigmas = np.flipud(sigmas)
+        P = np.fliplr(np.flipud(P))
+        hidden_states = 1 - hidden_states
 
 
 if __name__ == '__main__':
-    length_train, length_val, length_test = fit_hmm()
-    PlotHMM(length_train, length_val, length_test)

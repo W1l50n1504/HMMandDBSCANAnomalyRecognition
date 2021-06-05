@@ -1,4 +1,7 @@
 from tensorflow.keras.layers import Flatten, Dense, Dropout, BatchNormalization
+from scipy import stats as ss
+
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import os
@@ -25,6 +28,7 @@ nameYtest = 'total_acc_y_test.txt'
 nameZtest = 'total_acc_z_test.txt'
 
 hmmGraph = absPath_ + '/immagine/Markov/grafico.png'
+hmmDistribution = absPath_ + '/immagine/Markov/distribution.png'
 
 checkPointPath = absPath_ + '/checkpoint'
 graphAccuracy = absPath_ + '/immagine/CNN/'
@@ -145,8 +149,11 @@ def dataProcessingHMM(X_train, y_train, X_test, y_test):
 
     X_test = X_test.reshape((X_test.shape[0] * X_test.shape[1]), X_test.shape[2])
     # print(X_train.shape)
-    X_train = X_train.tolist()
-    X_test = X_test.tolist()
+    X_val = X_val.reshape((X_val.shape[0] * X_val.shape[1]), X_val.shape[2])
+
+    # X_train = X_train.tolist()
+    # X_test = X_test.tolist()
+    # X_val = X_val.tolist()
     # X_train, y_train, X_test, y_test = np.log(X_train), np.log(y_train), np.log(X_test), np.log(y_test)
     print('fine elaborazione dati')
     return X_train, y_train, X_test, y_test, X_val, y_val
@@ -182,7 +189,7 @@ def dataProcessingCNN(X_train, y_train, X_test, y_test):
     return X_train, y_train, X_test, y_test, X_val, y_val
 
 
-def PlotHMM(length_train, length_val, length_test):
+def PlotHMM(length_train, length_val, length_test, train_scores, test_scores, val_scores):
     print('Inizio plotting Hidden Markov Model')
     plt.figure(figsize=(7, 5))
     plt.scatter(np.arange(length_train), train_scores, c='b', label='trainset')
@@ -194,6 +201,96 @@ def PlotHMM(length_train, length_val, length_test):
 
     plt.savefig(hmmGraph)
     plt.show()
+
+
+def plotScatterHMM():
+    print('Creazione dello Scatter Plot')
+    sns.set()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    xs = np.arange(len(logdata))
+
+    masks = hidden_states == 0
+    ax.scatter(xs[masks], logdata[masks], c='red', label='WalkingDwnStairs')
+
+    masks = hidden_states == 1
+    ax.scatter(xs[masks], logdata[masks], c='blue', label='WalkingUpstairs')
+
+    masks = hidden_states == 2
+    ax.scatter(xs[masks], logdata[masks], c='green', label='Sitting')
+
+    masks = hidden_states == 3
+    ax.scatter(xs[masks], logdata[masks], c='yellow', label='Standing')
+
+    masks = hidden_states == 4
+    ax.scatter(xs[masks], logdata[masks], c='orange', label='Walking')
+
+    masks = hidden_states == 5
+    ax.scatter(xs[masks], logdata[masks], c='black', label='Jogging')
+
+    # decommentare per congiungere tutti i punti sul grafico
+    # ax.plot(xs, logdata, c='k')
+
+    ax.set_xlabel('Indice')
+    ax.set_ylabel('Valore sensore')
+    fig.subplots_adjust(bottom=0.2)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=2, frameon=True)
+    fig.set_size_inches(800 / mydpi, 800 / mydpi)
+    fig.savefig(filename1)
+    fig.clf()
+    print('ScatterPlot creato')
+
+
+def plotDistributionHMM(self):
+    print('Creazione grafico di distribuzione')
+    # calcolo della distribuzione stazionaria
+    eigenvals, eigenvecs = np.linalg.eig(np.transpose(P))
+    one_eigval = np.argmin(np.abs(eigenvals - 1))
+    pi = eigenvecs[:, one_eigval] / np.sum(eigenvecs[:, one_eigval])
+
+    x_0 = np.linspace(mus[0] - 4 * sigmas[0], mus[0] + 4 * sigmas[0], 10000)
+    fx_0 = pi[0] * ss.norm.pdf(x_0, mus[0], sigmas[0])
+
+    x_1 = np.linspace(mus[1] - 4 * sigmas[1], mus[1] + 4 * sigmas[1], 10000)
+    fx_1 = pi[1] * ss.norm.pdf(x_1, mus[1], sigmas[1])
+
+    # x_2 = np.linspace(mus[2] - 4 * sigmas[2], mus[2] + 4 * sigmas[2], 10000)
+    # fx_2 = pi[2] * ss.norm.pdf(x_2, mus[2], sigmas[2])
+
+    # x_3= np.linspace(mus[3] - 4 * sigmas[3], mus[3] + 4 * sigmas[1], 10000)
+    # fx_3 = pi[3] * ss.norm.pdf(x_3, mus[3], sigmas[3])
+
+    # x_4= np.linspace(mus[4] - 4 * sigmas[4], mus[4] + 4 * sigmas[4], 10000)
+    # fx_4 = pi[4] * ss.norm.pdf(x_4, mus[4], sigmas[4])
+
+    # x_5 = np.linspace(mus[5] - 4 * sigmas[5], mus[5] + 4 * sigmas[1], 10000)
+    # fx_5 = pi[5] * ss.norm.pdf(x_5, mus[5], sigmas[5])
+
+    x = np.linspace(mus[0] - 4 * sigmas[0], mus[1] + 4 * sigmas[1], 10000)
+    fx = pi[0] * ss.norm.pdf(x, mus[0], sigmas[0]) + pi[1] * ss.norm.pdf(x, mus[1], sigmas[1])
+
+    sns.set()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.hist(logdata, color='k', alpha=0.5, density=True)
+    l1, = ax.plot(x_0, fx_0, c='red', linewidth=2, label='WalkingDwnStairs Distn')
+    l2, = ax.plot(x_1, fx_1, c='blue', linewidth=2, label='WalkingUpStairs Distn')
+    # l3, = ax.plot(x_2, fx_2, c='green', linewidth=2, label='Sitting Distn')
+    # l4, = ax.plot(x_3, fx_3, c='yellow', linewidth=2, label='Standing Distn')
+    # l5, = ax.plot(x_4, fx_4, c='orange', linewidth=2, label='Walking Distn')
+    # l6, = ax.plot(x_5, fx_5, c='black', linewidth=2, label='Jogging Distn')
+    l7, = ax.plot(x, fx, c='cyan', linewidth=2, label='Combined Distn')
+
+    fig.subplots_adjust(bottom=0.15)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=True)
+    fig.set_size_inches(800 / mydpi, 800 / mydpi)
+    fig.savefig(filename2)
+    fig.clf()
+
+    print('Fine creazione grafico')
 
 
 def plot_learningCurveCNN(history, epochs):
