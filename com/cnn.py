@@ -1,79 +1,49 @@
-import tensorflow as tf
-from tensorflow.keras import datasets, layers, models
-import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Conv2D, MaxPool2D
+from tensorflow.keras.layers import Flatten, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Conv2D, MaxPool2D
+from tensorflow.keras.callbacks import ModelCheckpoint
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+import matplotlib.pyplot as plt
+
 from utility import *
 
-RANDOM_SEED = 42
 
-np.random.seed(RANDOM_SEED)
-tf.random.set_seed(RANDOM_SEED)
+def cnn(X_train, y_train, X_test, y_test, X_val, y_val, epochs):
+    print('Inizio creazione CNN')
 
+    model = Sequential()
+    model.add(Conv2D(64, 1, activation='relu', input_shape=X_train[0].shape))
+    model.add(Dropout(0.1))
 
-class CNN:
-    def __init__(self, train_X, train_y, test_X, test_y):
-        # caricamento dei testset e trainset
-        self.train = train_X.astype('float32')
-        self.train_labels = train_y
-        self.test = test_X.astype('float32')
-        self.test_labels = test_y
+    model.add(Conv2D(128, 1, activation='relu', padding='valid'))
+    model.add(MaxPool2D(1, 1))
 
-        self.train_labels = labelDict
+    model.add(Dropout(0.5))
+    model.add(Flatten())
 
-        self.test_labels = None
-        self.history = None
+    model.add(Dense(512, activation='relu'))
 
-        # crezione labels
-        self.train_labels = []
-        self.test_labels = ['WalkingDwnStairs', 'WalkingUpstairs', 'Sitting', 'Standing', 'Walking', 'Jogging']
+    model.add(Dense(6, activation='softmax'))
 
-        # creazione base convoluzionale
-        self.model = models.Sequential()
-        self.model.add(layers.Conv2D(64, 1, activation='relu', input_shape=self.train[0].shape))
-        self.model.add(layers.MaxPooling2D((1, 1)))
-        self.model.add(layers.Conv2D(128, 1, activation='relu'))
-        self.model.add(layers.MaxPooling2D((1, 1)))
-        self.model.add(layers.Conv2D(128, 1, activation='relu'))
+    model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['accuracy', tf.keras.metrics.AUC()])
 
-        # stampa architettura del modello
-        self.model.summary()
+    checkpoint = ModelCheckpoint(checkPointPath + '/best_model.hdf5',
+                                 monitor='val_accuracy', verbose=1, save_best_only=True, mode='auto', period=1)
 
-        # spostamento degli stati densi in cima
-        self.model.add(layers.Flatten())
-        self.model.add(layers.Dense(64, activation='relu'))
-        self.model.add(layers.Dense(10))
-
-        # stampa architettura del modello
-        self.model.summary()
-
-    def fitting(self):
-        # compilazione e addestramento del modello
-        self.model.compile(optimizer='adam',
-                           loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                           metrics=['accuracy'])
-
-        self.history = self.model.fit(self.train, self.train_labels, epochs=10,
-                                      validation_data=(self.test, self.test_labels))
-
-    def plot(self):
-        # valutazione del modello
-        plt.plot(self.history.history['accuracy'], label='accuracy')
-        plt.plot(self.history.history['val_accuracy'], label='val_accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.ylim([0.5, 1])
-        plt.legend(loc='lower right')
-
-        test_loss, test_acc = self.model.evaluate(self.test, self.test_labels, verbose=2)
-        print(test_acc)
+    history = model.fit(X_train, y_train, batch_size=64, epochs=epochs, validation_data=(X_val, y_val),
+                        verbose=1, callbacks=[checkpoint])
+    return history
 
 
 if __name__ == '__main__':
-    train_X, train_y, test_X, test_y = load_dataset(labelDict)
-
-    # train_X, train_y, test_X, test_y = encode(train_X, train_y, test_X, test_y)
-    # creazione del modello avvenuta con successo
-    cnn = CNN(train_X, train_y, test_X, test_y)
-    # problema nel fitting del modello, non accetta float in input
-    cnn.fitting()
-    # cnn.plot()
+    X_train, y_train, X_test, y_test = loadDataCNN()
+    X_train, y_train, X_test, y_test, X_val, y_val, = dataProcessingCNN(X_train, y_train, X_test, y_test)
+    history = cnn(X_train, y_train, X_test, y_test, X_val, y_val, 10)
+    plot_learningCurve(history, 10)
