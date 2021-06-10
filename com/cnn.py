@@ -1,29 +1,6 @@
-import numpy as np
-import seaborn as sns
-import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Conv2D, MaxPool2D
-from tensorflow.keras.layers import Flatten, Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Conv2D, MaxPool2D
-from tensorflow.keras.callbacks import ModelCheckpoint
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-import matplotlib.pyplot as plt
 
 
 import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Flatten, Dense, Dropout, BatchNormalization
-from tensorflow.keras.layers import Conv2D, MaxPool2D
-from tensorflow.keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 from utility import *
 
