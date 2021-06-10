@@ -1,5 +1,8 @@
+import matplotlib.pyplot as plt
 from tensorflow.keras.layers import Flatten, Dense, Dropout, BatchNormalization
 from scipy import stats as ss
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 
 import seaborn as sns
 import numpy as np
@@ -27,11 +30,20 @@ nameXtest = 'total_acc_x_test.txt'
 nameYtest = 'total_acc_y_test.txt'
 nameZtest = 'total_acc_z_test.txt'
 
-hmmGraph = absPath_ + '/immagine/Markov/grafico.png'
-hmmDistribution = absPath_ + '/immagine/Markov/distribution.png'
+hmmGraph = absPath_ + '/grafici/Markov/grafico.png'
+hmmDistribution = absPath_ + '/grafici/Markov/distribution.png'
 
-checkPointPath = absPath_ + '/checkpoint'
-graphAccuracy = absPath_ + '/immagine/CNN/'
+checkPointPathCNN = absPath_ + '/checkpoint/CNN'
+checkPointPathBLSTM = absPath_ + '/checkpoint/BLSTM'
+
+trainingValAccCNN = absPath_ + '/grafici/CNN/CNNAcc.png'
+trainingValAccBLSTM = absPath_ + '/grafici/BLSTM/BLSTMAcc.png'
+
+TrainingValAucCNN = absPath_ + '/grafici/CNN/CNNAuc.png'
+TrainingValAucBLSTM = absPath_ + '/grafici/BLSTM/BLSTMAuc.png'
+
+ModelLossCNN = absPath_ + '/grafici/CNN/ModelLossCNN.png'
+ModelLossBLSTM = absPath_ + '/grafici/BLSTM/ModelLossBLSTM.png'
 
 labelDict = {'WALKING': 0, 'WALKING_UPSTAIRS': 1, 'WALKING_DOWNSTAIRS': 2,
              'SITTING': 3, 'STANDING': 4, 'LAYING': 5}
@@ -136,6 +148,23 @@ def loadDataCNN():
     return X_train, y_train, X_test, y_test
 
 
+def loadDataBLSTM():
+    print('caricamento dei dati di training e test')
+    X_train = load_X(X_train_signals_paths)
+    X_test = load_X(X_test_signals_paths)
+
+    y_train = load_y(y_train_path)
+    y_test = load_y(y_test_path)
+
+    # print('X_train', X_train)
+    # print('y_train', y_train)
+    # print('X_test', X_test)
+    # print('y_test', y_test)
+
+    print('fine caricamento')
+    return X_train, y_train, X_test, y_test
+
+
 def dataProcessingHMM(X_train, y_train, X_test, y_test):
     print('elaborazione dei dati...')
     X = np.concatenate((X_train, X_test))
@@ -150,11 +179,9 @@ def dataProcessingHMM(X_train, y_train, X_test, y_test):
     X_test = X_test.reshape((X_test.shape[0] * X_test.shape[1]), X_test.shape[2])
     # print(X_train.shape)
     X_val = X_val.reshape((X_val.shape[0] * X_val.shape[1]), X_val.shape[2])
-
-    # X_train = X_train.tolist()
-    # X_test = X_test.tolist()
-    # X_val = X_val.tolist()
-    # X_train, y_train, X_test, y_test = np.log(X_train), np.log(y_train), np.log(X_test), np.log(y_test)
+    X_train = X_train.reshape(1, -1)
+    X_test = X_test.reshape(1, -1)
+    X_val = X_val.reshape(1, -1)
     print('fine elaborazione dati')
     return X_train, y_train, X_test, y_test, X_val, y_val
 
@@ -176,14 +203,31 @@ def dataProcessingCNN(X_train, y_train, X_test, y_test):
 
     print('dimensione reshape', X_val[..., np.newaxis].shape)
 
-    # X_train = X_train.reshape(6488, 561, 1, 1)
-    # X_test = X_test.reshape(3090, 561, 1, 1)
-    # X_val = X_val.reshape(721, 561, 1, 1)
+    X_train = X_train.reshape(6488, 561, 1, 1)
+    X_test = X_test.reshape(3090, 561, 1, 1)
+    X_val = X_val.reshape(721, 561, 1, 1)
 
-    X_train = X_train.reshape(6488, 187, 3, 1)
-    X_test = X_test.reshape(3090, 187, 3, 1)
-    X_val = X_val.reshape(721, 187, 3, 1)
+    print('fine elaborazione dati')
+    return X_train, y_train, X_test, y_test, X_val, y_val
 
+
+def dataProcessingBLSTM(X_train, y_train, X_test, y_test):
+    print('elaborazione dei dati...')
+
+    X = np.concatenate((X_train, X_test))
+
+    y = np.concatenate((y_train, y_test))
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42)
+
+    enc = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    enc = enc.fit(y_train)
+
+    y_train = enc.transform(y_train)
+    y_test = enc.transform(y_test)
+    y_val = enc.transform(y_val)
     print('fine elaborazione dati')
 
     return X_train, y_train, X_test, y_test, X_val, y_val
@@ -294,7 +338,9 @@ def plotDistributionHMM(self):
 
 
 def plot_learningCurveCNN(history, epochs):
+
     # Plot training & validation accuracy values
+    plt.figure(figsize=(15, 8))
     epoch_range = range(1, epochs + 1)
     plt.plot(epoch_range, history.history['accuracy'])
     plt.plot(epoch_range, history.history['val_accuracy'])
@@ -302,28 +348,71 @@ def plot_learningCurveCNN(history, epochs):
     plt.ylabel('Validation Accuracy')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.show()
+    plt.savefig(trainingValAccCNN)
+    # plt.show()
 
     # Plot training & validation auc values
+    plt.figure(figsize=(15, 8))
     epoch_range = range(1, epochs + 1)
-    plt.plot(epoch_range, history.history['auc_1'])
-    plt.plot(epoch_range, history.history['val_auc_1'])
+    plt.plot(epoch_range, history.history['auc'])
+    plt.plot(epoch_range, history.history['val_auc'])
     plt.title('Model auc')
     plt.ylabel('auc')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.show()
+    plt.savefig(TrainingValAucCNN)
+    # plt.show()
 
     # Plot training & validation loss values
+    plt.figure(figsize=(15, 8))
     plt.plot(epoch_range, history.history['loss'])
     plt.plot(epoch_range, history.history['val_loss'])
     plt.title('Model loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Val'], loc='upper left')
-    plt.savefig(graphAccuracy + 'GraphAccuracyCNN.png')
-    plt.show()
+    plt.savefig(ModelLossCNN)
+    # plt.show()
+
+def plot_learningCurveBLSTM(history, epochs):
+    # Plot training & validation accuracy values
+    plt.figure(figsize=(15, 8))
+    epoch_range = range(1, epochs + 1)
+    plt.plot(epoch_range, history.history['accuracy'])
+    plt.plot(epoch_range, history.history['val_accuracy'])
+    plt.title('Model accuracy')
+    plt.ylabel('Validation Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper left')
+    plt.savefig(trainingValAccBLSTM)
+    # plt.show()
+
+    # Plot training & validation auc values
+    plt.figure(figsize=(15, 8))
+    epoch_range = range(1, epochs + 1)
+    plt.plot(epoch_range, history.history['auc'])
+    plt.plot(epoch_range, history.history['val_auc'])
+    plt.title('Model auc')
+    plt.ylabel('auc')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper left')
+    plt.savefig(TrainingValAucBLSTM)
+    # plt.show()
+
+    # Plot training & validation loss values
+    plt.figure(figsize=(15, 8))
+    plt.plot(epoch_range, history.history['loss'])
+    plt.plot(epoch_range, history.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper left')
+    plt.savefig(ModelLossBLSTM)
+    # plt.show()
 
 
 if __name__ == '__main__':
-    magnitude = produceMagnitude(pathToSignalTrain)
+    X_train, y_train, X_test, y_test = loadDataHMM()
+    X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
+
+    print(X_train)
