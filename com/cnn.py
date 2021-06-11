@@ -1,7 +1,18 @@
-
-
 import tensorflow as tf
+import numpy as np
 
+from tensorflow.keras.layers import Flatten, Dense, Dropout, BatchNormalization
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from tensorflow.keras import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Conv2D, MaxPool2D
+from tensorflow.keras.layers import Flatten, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Conv2D, MaxPool2D
+from tensorflow.keras.callbacks import ModelCheckpoint
+from sklearn.model_selection import train_test_split
+from scipy import stats as ss
 from utility import *
 
 RANDOM_SEED = 42
@@ -17,7 +28,6 @@ epochs = 10
 
 
 def cnn():
-
     X_train, y_train, X_test, y_test = loadDataCNN()
     X_train, y_train, X_test, y_test, X_val, y_val, = dataProcessingCNN(X_train, y_train, X_test, y_test)
 
@@ -47,6 +57,5 @@ def cnn():
 
 
 if __name__ == '__main__':
-
     history = cnn()
     plot_learningCurveCNN(history, 10)

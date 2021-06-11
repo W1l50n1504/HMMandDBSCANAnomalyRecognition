@@ -3,22 +3,38 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import os
+import pickle
 
-from hmmlearn.hmm import GaussianHMM
+from hmmlearn.hmm import GaussianHMM, GMMHMM
 from matplotlib import pyplot as plt
 from scipy import stats as ss
 from keras import *
 from utility import *
 
+np.random.seed(42)
+
+absPath_ = os.getcwd()
+checkPointPathHMM = absPath_ + '/checkpoint/HMM'
+
+
+def saveModel(model):
+    with open(checkPointPathHMM + '/best_model.pkl', "wb") as file:
+        pickle.dump(model, file)
+
+
+def loadModel():
+    with open(checkPointPathHMM + '/best_model.pkl', "rb") as file:
+        model = pickle.load(file)
+
+    return model
+
 
 def fitHMM():
+    n_mix = 16
     n_components = 6
-
     X_train, y_train, X_test, y_test = loadDataHMM()
-
     X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
-
-    print('Preparazione matrici di probabilità...')
+    print('Creazioni matrici di prob...')
     startprob = np.zeros(n_components)
     startprob[0] = 1
 
@@ -30,59 +46,23 @@ def fitHMM():
         if i != transmat.shape[0]:
             for j in range(i, i + 2):
                 transmat[i, j] = 0.5
+    print('Inizio fitting del modello...')
+    lr = GMMHMM(n_components=n_components,
+                n_mix=n_mix,
+                covariance_type="diag",
+                init_params="cm", params="cm", verbose=True)
 
-    print('Creazione modello...')
-    # model = GaussianHMM(n_components=n_components, covariance_type="diag", init_params="cm", params="cm")
-    # Mettere verbose=True se si vuole vedere la creazione delle prob
-    model = GaussianHMM(n_components=3, n_iter=1000, verbose=False, init_params="cm")
+    lr.startprob_ = np.array(startprob)
+    lr.transmat_ = np.array(transmat)
 
-    model.startprob_ = np.array(startprob)
-    model.transmat_ = np.array(transmat)
+    lr.fit(X_train);
 
-    print('Fitting del modello...')
-    model.fit(X_train, y_train);
-    print('Plotting dei risultati del modello')
-    train_scores = []
-    test_scores = []
-    val_scores = []
-
-    for i in range(len(np.array(y_train))):
-        train_score = model.score(X_train[X_train == i])
-        train_scores.append(train_score)
-
-    for i in range(len(np.array(y_test))):
-        test_score = model.score(X_test[X_test == i])
-        test_scores.append(test_score)
-
-    for i in range(len(np.array(y_val))):
-        val_score = model.score(X_val[X_val == i])
-        val_scores.append(val_score)
-
-    length_train = len(train_scores)
-    length_val = len(val_scores) + length_train
-    length_test = len(test_scores) + length_val
-
-    plt.figure(figsize=(7, 5))
-    plt.scatter(np.arange(length_train), train_scores, c='b', label='trainset')
-    plt.scatter(np.arange(length_train, length_val), val_scores, c='r', label='testset - imitation')
-    plt.scatter(np.arange(length_val, length_test), test_scores, c='g', label='testset - original')
-    plt.title(f'User: 1 | HMM states: {n_components} | GMM components: 2')
-    plt.legend(loc='lower right')
-
-    plt.savefig(hmmGraph)
-    plt.show()
+    print('Salvataggio del modello...')
+    saveModel(lr)
 
 
 if __name__ == '__main__':
-    """
-    #effettuo fitting del modello
-    hidden_states, mus, sigmas, P, samples = fit_hmm(X_train)
-
-    #plot del modello
-    plotTimeSeries(X_train, hidden_states)
-    plotDistribution(X_train, mus, sigmas, P)
-
-    #length_train, length_val, length_test, train_scores, test_scores, val_scores = fit_hmm()
-    #PlotHMM(length_train, length_val, length_test, train_scores, test_scores, val_scores)
-    """
-    fitHMM()
+    X_train, y_train, X_test, y_test = loadDataHMM()
+    X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
+    # fitHMM()
+    plotHMM(X_train, y_train, X_test, y_test, X_val, y_val)
