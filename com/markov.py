@@ -1,3 +1,5 @@
+from utility import *
+
 import numpy as np
 import seaborn as sns
 import numpy as np
@@ -9,7 +11,8 @@ from hmmlearn.hmm import GaussianHMM, GMMHMM
 from matplotlib import pyplot as plt
 from scipy import stats as ss
 from keras import *
-from utility import *
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
 
 np.random.seed(42)
 
@@ -29,11 +32,9 @@ def loadModel():
     return model
 
 
-def fitHMM():
+def fitHMM(X_train, y_train, X_val, y_val):
     n_mix = 16
     n_components = 6
-    X_train, y_train, X_test, y_test = loadDataHMM()
-    X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
     print('Creazioni matrici di prob...')
     startprob = np.zeros(n_components)
     startprob[0] = 1
@@ -47,22 +48,55 @@ def fitHMM():
             for j in range(i, i + 2):
                 transmat[i, j] = 0.5
     print('Inizio fitting del modello...')
-    lr = GMMHMM(n_components=n_components,
-                n_mix=n_mix,
-                covariance_type="diag",
-                init_params="cm", params="cm", verbose=True)
+    model = GMMHMM(n_components=n_components,
+                   n_mix=n_mix,
+                   covariance_type="diag",
+                   init_params="cm", params="cm", verbose=True)
 
-    lr.startprob_ = np.array(startprob)
-    lr.transmat_ = np.array(transmat)
+    model.startprob_ = np.array(startprob)
+    model.transmat_ = np.array(transmat)
 
-    lr.fit(X_train);
+    model.fit(X_train)
 
     print('Salvataggio del modello...')
-    saveModel(lr)
+    saveModel(model)
+
+
+def matrixHMM(X_test, y_test, model):
+    model = loadModel()
+    rounded_labels = np.argmax(y_test, axis=1)
+    y_pred = model.predict(X_test)
+
+
+    print('rounded', rounded_labels.shape)
+    print('y_pred', y_pred.shape)
+    print('y_test', y_test.shape)
+
+    print('y_test', y_test)
+    print('rounded', rounded_labels)
+    print('y_pred', y_pred)
+
+    mat = confusion_matrix(rounded_labels, y_pred)
+    plot_confusion_matrix(conf_mat=mat, show_normed=True, figsize=(10, 10))
+
+    plt.figure(figsize=(10, 10))
+    array = confusion_matrix(rounded_labels, y_pred)
+    df_cm = pd.DataFrame(array, range(6), range(6))
+    df_cm.columns = ["Walking", "W_Upstairs", "W_Downstairs", "Sitting", "Standing", "Laying"]
+    df_cm.index = ["Walking", "W_Upstairs", "W_Downstairs", "Sitting", "Standing", "Laying"]
+    # sn.set(font_scale=1)#for label size
+    sns.heatmap(df_cm, annot=True, annot_kws={"size": 12},
+                yticklabels=("Walking", "W_Upstairs", "W_Downstairs", "Sitting", "Standing", "Laying"),
+                xticklabels=("Walking", "W_Upstairs", "W_Downstairs", "Sitting", "Standing", "Laying"))  # font size
+    # plt.savefig()
+    plt.show()
 
 
 if __name__ == '__main__':
     X_train, y_train, X_test, y_test = loadDataHMM()
     X_train, y_train, X_test, y_test, X_val, y_val = dataProcessingHMM(X_train, y_train, X_test, y_test)
-    # fitHMM()
-    plotHMM(X_train, y_train, X_test, y_test, X_val, y_val)
+
+    #fitHMM(X_train, y_train, X_val, y_val)
+    model = loadModel()
+
+    matrixHMM(X_test, y_test, model)
